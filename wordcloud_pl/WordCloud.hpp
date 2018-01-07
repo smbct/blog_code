@@ -5,13 +5,13 @@
 #include <SFML/Graphics.hpp>
 
 #include "Rect.hpp"
-#include "LP_1.hpp"
 
 class WordCloud {
 
     public:
         WordCloud(std::string nomFichier);
         ~WordCloud();
+        void exporter();
 
     private:
         void chargerNoms(std::string nomFichier);

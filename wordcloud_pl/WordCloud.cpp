@@ -22,7 +22,7 @@ WordCloud::WordCloud(std::string nomFichier) {
 /*----------------------------------------------------------------------------*/
 void WordCloud::genererTextes() {
 
-    int nb = 500;
+    int nb = 10;
     double tailleMin = 10;
     double tailleMax = 60;
 
@@ -84,9 +84,32 @@ void WordCloud::chargerNoms(std::string nomFichier) {
 /*----------------------------------------------------------------------------*/
 void WordCloud::generer() {
 
-    LP_1 lp;
-    lp.calculer(_rect);
 }
+
+/*----------------------------------------------------------------------------*/
+void WordCloud::exporter() {
+
+    ofstream fic("instance.txt");
+
+    if(fic) {
+
+        fic << _rect.size() << endl;
+
+        for(Rect* rect : _rect) {
+            fic << rect->larg;
+            fic << " ";
+            fic << rect->haut;
+            fic << " ";
+            fic << (std::string)rect->texte.getString();
+            fic << endl;
+        }
+
+    }
+
+    fic.close();
+
+}
+
 
 /*----------------------------------------------------------------------------*/
 WordCloud::~WordCloud() {

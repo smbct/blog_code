@@ -1,7 +1,6 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 
-#include "LP_1.hpp"
 #include "WordCloud.hpp"
 
 using namespace std;
@@ -13,6 +12,8 @@ int main(int argc, char* argv[]) {
     // test();
 
     WordCloud wc("noms");
+
+    wc.exporter();
 
     sf::RenderWindow fenetre(sf::VideoMode(800, 600), "Wordcloud PL");
 
