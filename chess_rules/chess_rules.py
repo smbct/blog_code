@@ -34,7 +34,8 @@ games.sample(frac=1)
 
 # select a subset of the games
 # games = games.iloc[:40]
-games = games.iloc[:70]
+# games = games.iloc[:70]
+games = games.iloc[:90]
 
 # print(games.head())
 #
@@ -51,9 +52,7 @@ move_index = 0
 
 
 
-# GUI setup
-window = gui(moves)
-window.update_board()
+
 
 
 board = chess.Board()
@@ -78,8 +77,9 @@ test_dataset = ChessDataset(test_df)
 
 
 print('size of the training set: ', len(training_dataset))
+print('size of the test set: ', len(test_dataset))
 
-batch_size = 30
+batch_size = 50
 train_dataloader = DataLoader(training_dataset, batch_size, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size, shuffle=True)
 
@@ -89,12 +89,12 @@ print(f"Using {device} device")
 
 
 model = ChessModel().to(device)
-model.load_state_dict(torch.load('chess_model.pth'))
+# model.load_state_dict(torch.load('chess_model.pth'))
 
 
 
 # model inference
-# model_inference.train_model(device, model, train_dataloader, test_dataloader)
+model_inference.train_model(device, model, train_dataloader, test_dataloader)
 # torch.save(model.state_dict(), 'chess_model.pth')
 
 
@@ -113,26 +113,36 @@ model.load_state_dict(torch.load('chess_model.pth'))
 model.eval()
 
 tensor = utils.board_square_to_tensor(board)
-print(tensor)
 
-
-
-data, decoded = training_dataset.create_move_data(board)
-
-print(data[0])
-print(data[0][1].reshape((8,8)))
-print(decoded[0])
-
-moves = utils.moves_from_rules(board)
-print(moves)
-
-mv2 = utils.moves_from_model(device, model, board, False)
-print('\n\n')
 mv = utils.moves_from_rules(board)
-fig, ax = plt.subplots()
-gboard.draw_board(ax, board)
-gboard.draw_moves(ax, mv2)
+
+# print(tensor)
+# print(board)
+# print(mv)
 
 
+# data, decoded = training_dataset.create_move_data(board)
+# print(data[0])
+# print(data[0][1].reshape((8,8)))
+# print(decoded[0])
+
+# moves = utils.moves_from_rules(board)
+# print(moves)
+
+# print('\n\n')
+#
+# print(mv2.keys())
+# print(mv2[(7,1)])
+#
+# mv = utils.moves_from_rules(board)
+
+# mv = utils.moves_from_model(device, model, board, False)
+# fig, ax = plt.subplots()
+# gboard.draw_board(ax, board)
+# gboard.draw_moves(ax, mv)
+
+# GUI setup
+window = gui(moves, model)
+window.update_board()
 
 plt.show()

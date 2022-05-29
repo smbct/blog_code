@@ -10,7 +10,7 @@ import utils
 class gui:
 
     #-------------------------------------------------------------------------------
-    def __init__(self, moves):
+    def __init__(self, moves, model = None):
 
         self.board = chess.Board()
         self.moves = moves
@@ -20,6 +20,10 @@ class gui:
         self.slider = None
         self.bnext = None
         self.bprev = None
+
+        self.model = model
+        self.fig2 = None
+        self.ax2 = None
 
         self.build_window()
 
@@ -83,15 +87,28 @@ class gui:
 
         self.slider.on_changed(self.slider_update_gui)
 
+        if not self.model is None:
+            fig, ax = plt.subplots()
+            self.fig2 = fig
+            self.ax2 = ax
+
         return
 
     #-------------------------------------------------------------------------------
     def update_board(self):
 
-        gboard.draw_board(self.ax, self.board)
 
-        moves = utils.moves_from_rules(self.board)
-        gboard.draw_moves(self.ax, moves)
+        with plt.ion():
+            self.ax.cla()
+            gboard.draw_board(self.ax, self.board)
+            moves = utils.moves_from_rules(self.board)
+            gboard.draw_moves(self.ax, moves)
+
+            if not self.model is None:
+                self.ax2.clear()
+                gboard.draw_board(self.ax2, self.board)
+                predicted_moves = utils.moves_from_model(next(self.model.parameters()).device, self.model, self.board, self.move_index % 2 != 0)
+                gboard.draw_moves(self.ax2, predicted_moves, True)
 
         return
 
@@ -105,8 +122,6 @@ class gui:
             self.slider.set_val(self.move_index)
             utils.go_to_move(self.board, self.moves, self.move_index)
 
-        plt.ion()
-        self.ax.cla()
         self.update_board()
 
         return
@@ -120,8 +135,6 @@ class gui:
             self.slider.set_val(self.move_index)
             utils.go_to_move(self.board, self.moves, self.move_index)
 
-        plt.ion()
-        self.ax.cla()
         self.update_board()
 
         return
@@ -136,11 +149,10 @@ class gui:
     #-------------------------------------------------------------------------------
     def slider_update_gui(self, value):
 
-        self.move_index = int(value)
-        utils.go_to_move(self.board, self.moves, self.move_index)
-        plt.ion()
-        self.ax.cla()
-        self.update_board()
+        if self.move_index != value: # make sure the change comes from the user
+            self.move_index = int(value)
+            utils.go_to_move(self.board, self.moves, self.move_index)
+            self.update_board()
 
         return
 
@@ -162,7 +174,7 @@ class gboard:
 
         for i in range(8):
             for j in range(8):
-                if i%2 != j %2:
+                if i%2 == j %2:
                     ax.fill([i,i+1, i+1, i], [j, j, j+1, j+1], 'mediumseagreen')
 
         for i in range(8):
@@ -176,11 +188,17 @@ class gboard:
                         ax.imshow(gboard.sprites[symbol.lower()+'d'], extent=(j, j+1, i, i+1), zorder=2)
 
     #-------------------------------------------------------------------------------
-    def draw_moves(ax, moves):
+    def draw_moves(ax, moves, col=False):
 
         for orig in moves:
             for dest in moves[orig]:
-                arrow = mpatches.FancyArrowPatch((orig[0]+0.5, orig[1]+0.5), (dest[0]+0.5, dest[1]+0.5), mutation_scale=20, zorder=3, alpha=0.35)
+                # convert board coord to screen coord (screen origin is the lower left corner)
+
+                if col:
+                    arrow = mpatches.FancyArrowPatch((orig[0]+0.5, 7-orig[1]+0.5), (dest[0]+0.5, 7-dest[1]+0.5), mutation_scale=20, zorder=3, alpha=0.35, color='brown')
+                else:
+                    arrow = mpatches.FancyArrowPatch((orig[0]+0.5, 7-orig[1]+0.5), (dest[0]+0.5, 7-dest[1]+0.5), mutation_scale=20, zorder=3, alpha=0.35)
+
                 ax.add_patch(arrow)
 
         return

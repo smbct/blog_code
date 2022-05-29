@@ -29,7 +29,7 @@ def train_loop(device, dataloader, model, loss_fn, optimizer):
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
 #---------------------------------------------------------------------------
-def test_loop(device, dataloader, model, loss_fn):
+def test_loop(device, dataloader, model, loss_fn, epoch):
 
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
@@ -50,19 +50,21 @@ def test_loop(device, dataloader, model, loss_fn):
             pred_norm = pred.cpu().numpy()
 
             error = 0.
-            for ind_sample in range(len(pred_norm)):
-                sub_error = 0.
-                for ind in range(len(pred_norm[ind_sample])):
-                    pred_val = 0 if pred_norm[ind_sample][ind] < 0.5 else 1.
-                    if pred_val < y[ind_sample][ind]-0.1:
-                        sub_error += 1.
-                sub_error /= len(pred_norm[ind_sample])
-                error += sub_error
 
-            error /= len(pred_norm)
+            if (epoch+1) % 10 == 0:
+                for ind_sample in range(len(pred_norm)):
+                    sub_error = 0.
+                    for ind in range(len(pred_norm[ind_sample])):
+                        pred_val = 0. if pred_norm[ind_sample][ind] <= 0.5 else 1.
+                        if abs(pred_val - y[ind_sample][ind]) >= 0.5:
+                            sub_error += 1.
+                    sub_error /= len(pred_norm[ind_sample])
+                    error += sub_error
 
-            accuracy -= error
-            # print(pred_norm)
+                error /= len(pred_norm)
+
+                accuracy -= error
+                # print(pred_norm)
 
         test_loss /= num_batches
         # correct /= size
@@ -74,18 +76,23 @@ def test_loop(device, dataloader, model, loss_fn):
 #---------------------------------------------------------------------------
 def train_model(device, model, train_dataloader, test_dataloader):
 
-    learning_rate = 1e-3
-    epochs = 10
+    learning_rate = 1e-1
+    epochs = 30
 
     # Initialize the loss function
     loss_fn = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) # 0.001
+
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 20], gamma=0.1)
 
     for t in range(epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train_loop(device, train_dataloader, model, loss_fn, optimizer)
-        test_loop(device, test_dataloader, model, loss_fn)
+        test_loop(device, test_dataloader, model, loss_fn, t)
+
+        scheduler.step()
 
     print("Done!")
 
