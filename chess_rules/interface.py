@@ -67,9 +67,6 @@ class gui:
         bt2_x = s_x+s_w+p3+bt_w+p3
         bt2_y = s_y
 
-        # print('slider: ', s_x, s_y, s_w, s_h)
-        # print('b1: ', bt1_x, bt1_y, bt_w, bt_h)
-
         fig = plt.figure()
         self.ax = plt.axes([b_x,b_y,b_w,b_h])
         ax2 = plt.axes([s_x,s_y,s_w,s_h])
@@ -115,8 +112,6 @@ class gui:
     #-------------------------------------------------------------------------------
     def next_move_gui(self, event):
 
-        # board.push_san(moves[move_index])
-
         if self.move_index < len(self.moves):
             self.move_index += 1
             self.slider.set_val(self.move_index)
@@ -129,7 +124,6 @@ class gui:
     #-------------------------------------------------------------------------------
     def prev_move_gui(self, event):
 
-        # board.push_san(moves[move_index])
         if self.move_index > 0:
             self.move_index -= 1
             self.slider.set_val(self.move_index)
@@ -172,11 +166,13 @@ class gboard:
         ax.xaxis.set_ticks([i+0.5 for i in range(8)], ['a','b', 'c', 'd', 'e', 'f', 'g', 'h'])
         ax.yaxis.set_ticks([i+0.5 for i in range(8)], list(range(1,9)))
 
+        # draw the draughtboard
         for i in range(8):
             for j in range(8):
                 if i%2 == j %2:
                     ax.fill([i,i+1, i+1, i], [j, j, j+1, j+1], 'mediumseagreen')
 
+        # draw the pieces
         for i in range(8):
             for j in range(8):
                 piece = board.piece_at(i*8+j)
@@ -193,10 +189,9 @@ class gboard:
         for orig in moves:
             for dest in moves[orig]:
                 # convert board coord to screen coord (screen origin is the lower left corner)
-
-                if col:
+                if col: # predicted move
                     arrow = mpatches.FancyArrowPatch((orig[0]+0.5, 7-orig[1]+0.5), (dest[0]+0.5, 7-dest[1]+0.5), mutation_scale=20, zorder=3, alpha=0.35, color='brown')
-                else:
+                else: # move from the rules
                     arrow = mpatches.FancyArrowPatch((orig[0]+0.5, 7-orig[1]+0.5), (dest[0]+0.5, 7-dest[1]+0.5), mutation_scale=20, zorder=3, alpha=0.35)
 
                 ax.add_patch(arrow)
@@ -205,6 +200,7 @@ class gboard:
 
     #-------------------------------------------------------------------------------
     def load_sprites():
+        # sprites from https://commons.wikimedia.org/wiki/Category:PNG_chess_pieces/Standard_transparent
         sprites = {}
         for a in ['b', 'k', 'n', 'p', 'q', 'r']:
             for b in ['d','l']:

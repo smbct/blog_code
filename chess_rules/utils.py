@@ -30,7 +30,7 @@ for ind in range(len(_layer_to_piece)):
     _piece_to_layer[_layer_to_piece[ind]] = ind
 
 # first layers: black pieces
-# followinf layers: white pieces
+# following layers: white pieces
 
 #------------------------------------------------------------------------------
 def layer_to_piece(layer):

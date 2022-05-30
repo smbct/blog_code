@@ -16,10 +16,9 @@ class ChessDataset(Dataset):
 
 
     #---------------------------------------------------------------------------
-    def __init__(self, dataframe, training = True):
+    def __init__(self, boards_str):
 
-        self._dataframe = dataframe
-        self.training = training
+        self._boards_str = boards_str
         self.transform = ToTensor()
 
         self.len = 0
@@ -45,24 +44,11 @@ class ChessDataset(Dataset):
         self.samples += data
         self.decoded_samples += decoded
 
-        for df_index in self._dataframe.index:
-
-            moves = self._dataframe.loc[df_index]['moves']
-            moves = moves.split(' ')
-
-            if len(moves) > 0:
-                board.reset()
-                board.push_san(moves[0])
-                ind_move = 1
-                while ind_move < len(moves):
-                    board.push_san(moves[ind_move])
-
-                    data, decoded = self.create_move_data(board)
-
-                    self.samples += data
-                    self.decoded_samples += decoded
-
-                    ind_move += 1
+        for board_str in self._boards_str:
+            board.set_fen(board_str)
+            data, decoded = self.create_move_data(board)
+            self.samples += data
+            self.decoded_samples += decoded
 
         return
 

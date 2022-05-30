@@ -45,13 +45,12 @@ def test_loop(device, dataloader, model, loss_fn, epoch):
 
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
-            # correct += (pred.argmax(1) == torch.argmax(y, dim=1)).type(torch.float).sum().item()
 
             pred_norm = pred.cpu().numpy()
 
+            # computation of the prediction accuracy
             error = 0.
-
-            if (epoch+1) % 10 == 0:
+            if (epoch+1) % 2 == 0:
                 for ind_sample in range(len(pred_norm)):
                     sub_error = 0.
                     for ind in range(len(pred_norm[ind_sample])):
@@ -60,30 +59,28 @@ def test_loop(device, dataloader, model, loss_fn, epoch):
                             sub_error += 1.
                     sub_error /= len(pred_norm[ind_sample])
                     error += sub_error
-
                 error /= len(pred_norm)
-
                 accuracy -= error
-                # print(pred_norm)
+
 
         test_loss /= num_batches
-        # correct /= size
-        # print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
-        print(f"Test Error: \n Accuracy: {(accuracy):>8f}%, Avg loss: {test_loss:>8f} \n")
 
-        # print(f"Test Error: \n Avg loss: {test_loss:>8f} \n")
+        if (epoch+1) % 10 == 0:
+            print(f"Test Error: \n Accuracy: {(accuracy):>8f}%, Avg loss: {test_loss:>8f} \n")
+        else:
+            print(f"Test Error: \n Avg loss: {test_loss:>8f} \n")
 
 #---------------------------------------------------------------------------
 def train_model(device, model, train_dataloader, test_dataloader):
 
     learning_rate = 1e-1
-    epochs = 30
+
+    epochs = 50
 
     # Initialize the loss function
     loss_fn = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) # 0.001
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 20], gamma=0.1)
 
@@ -97,7 +94,3 @@ def train_model(device, model, train_dataloader, test_dataloader):
     print("Done!")
 
     return
-
-# model = ChessModel().to(device)
-# train_model()
-# torch.save(model.state_dict(), 'chess_model.pth')

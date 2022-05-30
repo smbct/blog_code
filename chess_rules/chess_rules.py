@@ -24,122 +24,123 @@ from model import ChessModel
 import utils
 import model_inference
 
+import random
 
 
-print('hello')
+#-------------------------------------------------------------------------------
+# generate board configurations from multiple games
+def create_boards_dataset(games):
+
+    # generate all the possible boards from the games
+    boards_str = []
+    board = chess.Board()
+
+
+    print('creating the dataset...')
+    for game_index in games.index:
+        moves = games.loc[game_index]['moves'].split(' ')
+        board.reset()
+        for move in moves:
+            board.push_san(move)
+            boards_str.append(board.fen())
+
+    boards_str = list(set(boards_str))
+
+    random.shuffle(boards_str)
+
+    return boards_str
+
+
+#-------------------------------------------------------------------------------
+# plot a comparison of the board with moves from the rules moves predicted by the model
+def plot_comparison(model, moves):
+
+    fig, axs = plt.subplots(3, 2)
+
+    selected_indexes = list(range(len(moves)))
+    random.shuffle(selected_indexes)
+    selected_indexes = selected_indexes[:3]
+
+    board = chess.Board()
+    ind2 = 0
+    for ind in range(len(moves)):
+        board.push_san(moves[ind])
+        if ind in selected_indexes:
+            mv = utils.moves_from_rules(board)
+            mv2 = utils.moves_from_model(device, model, board, ind%2==0)
+
+            gboard.draw_board(axs[ind2][0], board)
+            gboard.draw_moves(axs[ind2][0], mv)
+
+            gboard.draw_board(axs[ind2][1], board)
+            gboard.draw_moves(axs[ind2][1], mv2, True)
+
+            ind2 += 1
+
+    return
+
+#-------------------------------------------------------------------------------
+# create the dataset and train the model
+def training(games, device, model):
+
+    boards_str = create_boards_dataset(games)
+
+    training_boards = boards_str[:8000]
+    test_boards = boards_str[3000:5000]
+
+    ################################################################################
+    # dataset creation
+    training_dataset = ChessDataset(training_boards)
+    test_dataset = ChessDataset(test_boards)
+
+    print('size of the training set: ', len(training_dataset))
+    print('size of the test set: ', len(test_dataset))
+
+    batch_size = 150
+    train_dataloader = DataLoader(training_dataset, batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size, shuffle=True)
+
+    ################################################################################
+    # model inference
+    model_inference.train_model(device, model, train_dataloader, test_dataloader)
+    # torch.save(model.state_dict(), 'chess_model.pth')
+
+
+
+################################################################################
+# generation of board configurations
 
 games = pd.read_csv('games.csv', index_col=0)
 games.drop_duplicates(inplace=True, subset=['moves']) # duplicated rows
 games.sample(frac=1)
 
-# select a subset of the games
-# games = games.iloc[:40]
-# games = games.iloc[:70]
-games = games.iloc[:90]
-
-# print(games.head())
-#
-# print(games[:10])
-
-game_index = 3
-
-print(games.iloc[game_index]['moves'])
-moves = games.iloc[game_index]['moves'].split(' ')
-move_index = 0
-
-
-
-
-
-
-
-
-
-board = chess.Board()
-
-
-
-
-
-# dataset creation
-
-# training_set = 80%
-# test_set = 20%
-stopping_index = int(games.shape[0]*0.7)
-training_df = games.iloc[:stopping_index]
-test_df = games.iloc[stopping_index:]
-
-# print(training_df)
-# print(test_df)
-
-training_dataset = ChessDataset(training_df)
-test_dataset = ChessDataset(test_df)
-
-
-print('size of the training set: ', len(training_dataset))
-print('size of the test set: ', len(test_dataset))
-
-batch_size = 50
-train_dataloader = DataLoader(training_dataset, batch_size, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size, shuffle=True)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-# device='cpu'
+device = 'cpu'
 print(f"Using {device} device")
 
 
 model = ChessModel().to(device)
-# model.load_state_dict(torch.load('chess_model.pth'))
 
 
 
-# model inference
-model_inference.train_model(device, model, train_dataloader, test_dataloader)
-# torch.save(model.state_dict(), 'chess_model.pth')
+################################################################################
+# training the model
+# training(games, device, model)
+# 97.289479% accuracy
 
 
 
-# model.eval()
-# it = iter(train_dataloader)
-# data, label = next(it)
-# data = data.to(device)
-# print(data)
-# print(label)
-# print(model(data))
-
-
-
-
+################################################################################
+# illustration of the trained model
+model.load_state_dict(torch.load('chess_model.pth'))
 model.eval()
 
-tensor = utils.board_square_to_tensor(board)
+game_index = 4
+moves = games.iloc[game_index]['moves'].split(' ')
 
-mv = utils.moves_from_rules(board)
-
-# print(tensor)
-# print(board)
-# print(mv)
-
-
-# data, decoded = training_dataset.create_move_data(board)
-# print(data[0])
-# print(data[0][1].reshape((8,8)))
-# print(decoded[0])
-
-# moves = utils.moves_from_rules(board)
-# print(moves)
-
-# print('\n\n')
-#
-# print(mv2.keys())
-# print(mv2[(7,1)])
-#
-# mv = utils.moves_from_rules(board)
-
-# mv = utils.moves_from_model(device, model, board, False)
-# fig, ax = plt.subplots()
-# gboard.draw_board(ax, board)
-# gboard.draw_moves(ax, mv)
+# generate a big graph
+plot_comparison(model, moves)
 
 # GUI setup
 window = gui(moves, model)
