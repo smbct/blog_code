@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.widgets import Slider, Button
-import matplotlib.patches as mpatches
 
 import torch
 from torch import nn
@@ -83,6 +81,8 @@ def plot_comparison(model, moves):
 # create the dataset and train the model
 def training(games, device, model):
 
+    games = games.iloc[:5]
+
     boards_str = create_boards_dataset(games)
 
     training_boards = boards_str[:8000]
@@ -103,7 +103,7 @@ def training(games, device, model):
     ################################################################################
     # model inference
     model_inference.train_model(device, model, train_dataloader, test_dataloader)
-    # torch.save(model.state_dict(), 'chess_model.pth')
+    torch.save(model.state_dict(), 'chess_model.pth')
 
 
 
@@ -116,9 +116,7 @@ games.sample(frac=1)
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-device = 'cpu'
 print(f"Using {device} device")
-
 
 model = ChessModel().to(device)
 
