@@ -50,7 +50,7 @@ def test_loop(device, dataloader, model, loss_fn, epoch):
 
             # computation of the prediction accuracy
             error = 0.
-            if (epoch+1) % 2 == 0:
+            if (epoch+1) % 10 == 0:
                 for ind_sample in range(len(pred_norm)):
                     sub_error = 0.
                     for ind in range(len(pred_norm[ind_sample])):

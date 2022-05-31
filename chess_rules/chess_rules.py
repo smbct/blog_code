@@ -81,7 +81,7 @@ def plot_comparison(model, moves):
 # create the dataset and train the model
 def training(games, device, model):
 
-    games = games.iloc[:5]
+    # games = games.iloc[:5]
 
     boards_str = create_boards_dataset(games)
 
