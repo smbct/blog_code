@@ -16,53 +16,7 @@
 using namespace std;
 
 
-/*----------------------------------------------------------------------------*/
-bool solve_cnf(cnf::CnfExpression& cnfEx, vector<bool>& cnfVal) {
 
-    string cnf_filename = "temp.dm";
-    string sol_filename = "res";
-
-    cnfEx.exportDimacs(cnf_filename);
-
-    string cmd;
-    cmd += "./glucose";
-
-
-    cmd += " -verb=0";
-    // cmd += " -cpu-lim=1";
-    // cmd += " --help";
-
-    cmd += " " + cnf_filename;
-    cmd += " " + sol_filename;
-
-    // ./glucose temp.dm res
-    system(cmd.c_str());
-
-    ifstream file(sol_filename);
-
-    string str;
-    while(!file.eof()) {
-        file >> str;
-
-        if(str == "UNSAT") {
-            return false;
-        }
-
-        if(str != "0") {
-            bool pol = true;
-            if(str.at(0) == '-') {
-                pol = false;
-                    str = str.substr(1);
-            }
-            int ind = stoi(str)-1;
-            cnfVal.at(ind) = pol;
-        }
-
-    }
-    file.close();
-
-    return true;
-}
 
 /*----------------------------------------------------------------------------*/
 int main() {
@@ -229,7 +183,7 @@ int main() {
     ex.toCnf(cnfEx, cnfVar);
     vector<bool> cnfVal(cnfVar.size()); /* values of the cnf variables */
     
-    bool res = solve_cnf(cnfEx, cnfVal);
+    bool res = Encoder::solve_cnf(cnfEx, cnfVal);
 
     if(res) {
 

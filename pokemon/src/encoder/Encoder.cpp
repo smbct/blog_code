@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <memory>
+#include <fstream>
 
 using namespace std;
 
@@ -56,10 +57,67 @@ void Encoder::createEncoding() {
         cout << move->to_string() << " -> " << move->moveIndex() << endl;
     }
 
+    // variables creation
+    unsigned int n_states = 3;
+    _stateSequence.resize(3);
+    for(auto it = _stateSequence.begin(); it != _stateSequence.end(); it ++) {
+        createStateVariables(*it);
+    }
+    _movesVar.resize(n_states-1);
+    for(auto it = _movesVar.begin(); it != _movesVar.end(); it ++) {
+        createMoveVariables(*it);    
+    }
+
+    createDigitVariables(_ldigits_final);
+    createDigitVariables(_rdigits_final);
 
 
-    // _ex.setMainTerm(new AndOp(term_list));
+    // move constraints and atmostone move
+    for(unsigned int move_ind = 0; move_ind < _movesVar.size(); move_ind ++) {
+        addMoveConstraint(_stateSequence[move_ind], _stateSequence[move_ind+1], _movesVar[move_ind]);
+    }
 
+    for(unsigned int move_ind = 0; move_ind < _movesVar.size(); move_ind ++) {
+        addAtMostOneMove(_movesVar[move_ind]);
+    }
+
+    addDigitConstraints(_ldigits_final, _stateSequence.back().left_grid);
+    addDigitConstraints(_rdigits_final, _stateSequence.back().right_grid);
+
+    // add at most one digit constraint
+
+
+    _ex.setMainTerm(new AndOp(term_list));
+
+    // cout << _ex.toString() << endl;
+
+    cnf::CnfExpression cnfEx;
+    vector<cnf::Variable*> cnfVar;
+    _ex.toCnf(cnfEx, cnfVar);
+    vector<bool> cnfVal(cnfVar.size()); /* values of the cnf variables */
+
+    bool res = solve_cnf(cnfEx, cnfVal);
+
+    if(res) {
+
+    // extract the solution
+    // for(unsigned int row_ind = 0; row_ind < N; row_ind ++) {
+    //     for(unsigned int col_ind = 0; col_ind < N; col_ind ++) {
+    //         // cout << row_ind << "," << col_ind << ": ";
+    //         int digit = 0;
+    //         for(unsigned int ind = 0; ind < N*N; ind ++) {
+    //             // cout << cnfVal[cnfVar[gridVar[row_ind][col_ind][ind]->index()]->index()] << ", ";
+    //             if(cnfVal[cnfVar[gridVar[row_ind][col_ind][ind]->index()]->index()]) {
+    //                 digit = ind+1;
+    //             }
+    //         }
+    //         cout << digit << " ";
+    //         // cout << endl;
+    //     }
+    //     cout << endl;
+    // }
+
+    }
 
 }
 
@@ -224,7 +282,28 @@ Variable* Encoder::getGridVar(StateVar& state_var, unsigned int row, unsigned in
 //------------------------------------------------------------------------------------------------------------
 void Encoder::addDigitConstraints(DigitVar& digit_vars, GridVar& grid_vars) {
 
+    for(unsigned int ind = 0; ind < _N; ind ++) { // iterate over rows and columns
+        for(unsigned int digit_ind = 0; digit_ind < _N*_N; digit_ind ++) { // iterate over the digits
+            vector<Term*> or_row, or_col;
+            for(unsigned int ind2 = 0; ind2 < _N; ind2 ++) { // iterate over the cells of the rows and columns
+                or_row.push_back(grid_vars[ind][ind2][digit_ind]);
+                or_col.push_back(grid_vars[ind2][ind][digit_ind]);
+            }
+            term_list.push_back(new ImplyOp(digit_vars.rows[ind][digit_ind], new OrOp(or_row)));
+            term_list.push_back(new ImplyOp(digit_vars.cols[ind][digit_ind], new OrOp(or_col)));
+        }
+    }
 
+    // diagonals digits
+    for(unsigned int digit_ind = 0; digit_ind < _N*_N; digit_ind ++) {
+        vector<Term*> or_diag1, or_diag2;
+        for(unsigned int ind = 0; ind < _N; ind ++) {
+            or_diag1.push_back(grid_vars[ind][ind][digit_ind]);
+            or_diag2.push_back(grid_vars[ind][_N-ind-1][digit_ind]);
+        }
+        term_list.push_back(new ImplyOp(digit_vars.diag1[digit_ind], new OrOp(or_diag1)));
+        term_list.push_back(new ImplyOp(digit_vars.diag2[digit_ind], new OrOp(or_diag2)));
+    }
 
 }
 
@@ -232,8 +311,44 @@ void Encoder::addDigitConstraints(DigitVar& digit_vars, GridVar& grid_vars) {
 //------------------------------------------------------------------------------------------------------------
 void Encoder::addSumConstraints(DigitVar& digit_vars) {
 
+    // sum = 15 on rows and cols
+    for(unsigned int ind = 0; ind < _N; ind ++) {
+        vector<Term*> row_or, col_or;
+        for(auto& subset: _subsets) {
+            row_or.push_back(new AndOp({digit_vars.rows[ind][subset[0]-1], digit_vars.rows[ind][subset[1]-1], digit_vars.rows[ind][subset[2]-1]}));
+            col_or.push_back(new AndOp({digit_vars.cols[ind][subset[0]-1], digit_vars.cols[ind][subset[1]-1], digit_vars.cols[ind][subset[2]-1]}));
+        }
+        term_list.push_back(new OrOp(row_or));
+        term_list.push_back(new OrOp(col_or));    
+    }
+
+    // sum = 15 on diagonals
+    vector<Term*> diag1_or, diag2_or;
+    for(auto& subset: _subsets) {
+        diag1_or.push_back(new AndOp({digit_vars.diag1[subset[0]-1], digit_vars.diag1[subset[1]-1], digit_vars.diag1[subset[2]-1]}));
+        diag2_or.push_back(new AndOp({digit_vars.diag2[subset[0]-1], digit_vars.diag2[subset[1]-1], digit_vars.diag2[subset[2]-1]}));
+    }
+    term_list.push_back(new OrOp(diag1_or));
+    term_list.push_back(new OrOp(diag2_or));
 
 }
+
+
+//--------------------------------------------------------------------
+void Encoder::addAtMostOneMove(MoveVar& move) {
+
+    for(unsigned int move_ind = 0; move_ind < move.size(); move_ind ++) {
+        vector<Term*> and_terms;
+        for(unsigned int move_ind2 = 0; move_ind2 < move.size(); move_ind2 ++) {
+            if(move_ind != move_ind2) {
+                and_terms.push_back(new NotOp(move[move_ind2]));
+            }
+        }
+        term_list.push_back(new ImplyOp(move[move_ind], new AndOp(and_terms)));
+    }
+
+}
+
 
 
 
@@ -268,3 +383,51 @@ void Encoder::enumerate_subsets(int* sequence, unsigned int size, list<vector<in
     }
 }
 
+
+/*----------------------------------------------------------------------------*/
+bool Encoder::solve_cnf(cnf::CnfExpression& cnfEx, vector<bool>& cnfVal) {
+
+    string cnf_filename = "temp.dm";
+    string sol_filename = "res";
+
+    cnfEx.exportDimacs(cnf_filename);
+
+    string cmd;
+    cmd += "./glucose";
+
+
+    cmd += " -verb=0";
+    // cmd += " -cpu-lim=1";
+    // cmd += " --help";
+
+    cmd += " " + cnf_filename;
+    cmd += " " + sol_filename;
+
+    // ./glucose temp.dm res
+    system(cmd.c_str());
+
+    ifstream file(sol_filename);
+
+    string str;
+    while(!file.eof()) {
+        file >> str;
+
+        if(str == "UNSAT") {
+            return false;
+        }
+
+        if(str != "0") {
+            bool pol = true;
+            if(str.at(0) == '-') {
+                pol = false;
+                    str = str.substr(1);
+            }
+            int ind = stoi(str)-1;
+            cnfVal.at(ind) = pol;
+        }
+
+    }
+    file.close();
+
+    return true;
+}

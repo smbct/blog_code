@@ -17,7 +17,6 @@ typedef std::vector<std::vector<std::vector<Variable*>>> GridVar;
 typedef std::vector<Variable*> MoveVar;
 
 
-
 // for each row col and diagonal, an array of variable representing each digits, true if the are used
 struct DigitVar {
     std::vector<std::vector<Variable*>> rows;
@@ -45,18 +44,16 @@ class Encoder {
         //-------------------------------------------------
         Encoder(unsigned int N);
 
-        
 
-        //-------------------------------------------------
+        //-------------------------------------------------        
+        // Constraints creation
         void addDigitConstraints(DigitVar& digit_vars, GridVar& grid_vars);
 
-        //-------------------------------------------------
         void addSumConstraints(DigitVar& digit_vars);
 
-
-        //-------------------------------------------------
         void addMoveConstraint(StateVar& left, StateVar& right, MoveVar& move);
 
+        void addAtMostOneMove(MoveVar& move);
 
         //-------------------------------------------------
         // Variable creation
@@ -80,6 +77,9 @@ class Encoder {
 
         //-------------------------------------------------
         static void enumerate_subsets(int* sequence, unsigned int size, std::list<std::vector<int>>& subsets);
+
+        //-------------------------------------------------
+        static bool solve_cnf(cnf::CnfExpression& cnfEx, std::vector<bool>& cnfVal);
 
 
     private:
