@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <fstream>
+#include "Solution.hpp"
 
 using namespace std;
 
@@ -50,6 +51,10 @@ Encoder::Encoder(unsigned int N): _N(N) {
 //--------------------------------------------------------------------
 void Encoder::createEncoding() {
     
+    // initial grids
+    int init_gleft[] = {4, 9, 6, 5, 8, 3, 2, 4, 1};
+    int init_gright[] = {1, 2, 5, 7, 7, 9, 6, 3, 8};
+
     GridVar grid_left;
     createGridVariables(grid_left);
 
@@ -58,8 +63,8 @@ void Encoder::createEncoding() {
     }
 
     // variables creation
-    unsigned int n_states = 3;
-    _stateSequence.resize(3);
+    unsigned int n_states = 2;
+    _stateSequence.resize(n_states);
     for(auto it = _stateSequence.begin(); it != _stateSequence.end(); it ++) {
         createStateVariables(*it);
     }
@@ -70,6 +75,9 @@ void Encoder::createEncoding() {
 
     createDigitVariables(_ldigits_final);
     createDigitVariables(_rdigits_final);
+
+    // initial state of the grids
+    addInitStateConstraint(_stateSequence.front(), init_gleft, init_gright);
 
 
     // move constraints and atmostone move
@@ -86,6 +94,20 @@ void Encoder::createEncoding() {
 
     // add at most one digit constraint
 
+    // add at least one digit activated per grid at the last state
+    for(unsigned int row_ind = 0; row_ind < _N; row_ind ++) {
+        for(unsigned int col_ind = 0; col_ind < _N; col_ind ++) {
+
+            vector<Term*> or_terms_left, or_terms_right;
+            for(unsigned int cell_ind = 0; cell_ind < _N*_N; cell_ind ++) {
+                or_terms_left.push_back(_stateSequence.back().left_grid[row_ind][col_ind][cell_ind]);
+                or_terms_right.push_back(_stateSequence.back().right_grid[row_ind][col_ind][cell_ind]);
+            }
+            term_list.push_back(new OrOp(or_terms_left));
+            term_list.push_back(new OrOp(or_terms_right));
+        
+        }
+    }
 
     _ex.setMainTerm(new AndOp(term_list));
 
@@ -96,26 +118,18 @@ void Encoder::createEncoding() {
     _ex.toCnf(cnfEx, cnfVar);
     vector<bool> cnfVal(cnfVar.size()); /* values of the cnf variables */
 
+    // this returns true if there is a solution, and it returns the cnf variable assignment in the solution
     bool res = solve_cnf(cnfEx, cnfVal);
 
     if(res) {
 
-    // extract the solution
-    // for(unsigned int row_ind = 0; row_ind < N; row_ind ++) {
-    //     for(unsigned int col_ind = 0; col_ind < N; col_ind ++) {
-    //         // cout << row_ind << "," << col_ind << ": ";
-    //         int digit = 0;
-    //         for(unsigned int ind = 0; ind < N*N; ind ++) {
-    //             // cout << cnfVal[cnfVar[gridVar[row_ind][col_ind][ind]->index()]->index()] << ", ";
-    //             if(cnfVal[cnfVar[gridVar[row_ind][col_ind][ind]->index()]->index()]) {
-    //                 digit = ind+1;
-    //             }
-    //         }
-    //         cout << digit << " ";
-    //         // cout << endl;
-    //     }
-    //     cout << endl;
-    // }
+        Solution solution(_N);
+
+        solution.extractMoves(_movesVar, cnfVar, cnfVal);
+
+        solution.extractStates(_stateSequence, cnfVar, cnfVal);
+
+
 
     }
 
@@ -253,7 +267,8 @@ void Encoder::addMoveConstraint(StateVar& left, StateVar& right, MoveVar& move) 
 
 
                 // final operation, activation of the digit implies: (a corresponding operation or the digit was active) and no other digit
-                term_list.push_back(new ImplyOp(right.left_grid[row_ind][col_ind][digit_ind], new AndOp(and_terms_left)));
+                term_list.push_back(new ImplyOp(right.left_grid[row_ind][col_ind][digit_ind], new AndOp(and_terms_left))); // left grid
+                term_list.push_back(new ImplyOp(right.right_grid[row_ind][col_ind][digit_ind], new AndOp(and_terms_right))); // right grid
 
 
             }
@@ -348,6 +363,38 @@ void Encoder::addAtMostOneMove(MoveVar& move) {
     }
 
 }
+
+//--------------------------------------------------------------------
+void Encoder::addInitStateConstraint(StateVar& state_vars, int* gleft, int* gright) {
+
+    for(unsigned int ind = 0; ind < _N*_N; ind ++) {
+        
+        unsigned int row_ind = ind/_N;
+        unsigned int col_ind = ind%_N;
+
+        vector<Term*> and_terms_left, and_terms_right;
+
+        for(unsigned int digit_ind = 0; digit_ind < _N*_N; digit_ind ++) {
+            if(gleft[ind] == static_cast<int>(digit_ind+1)) {
+                and_terms_left.push_back(state_vars.left_grid[row_ind][col_ind][digit_ind]);
+            } else {
+                and_terms_left.push_back(new NotOp(state_vars.left_grid[row_ind][col_ind][digit_ind]));
+            }
+            if(gright[ind] == static_cast<int>(digit_ind+1)) {
+                and_terms_right.push_back(state_vars.right_grid[row_ind][col_ind][digit_ind]);
+            } else {
+                and_terms_right.push_back(new NotOp(state_vars.right_grid[row_ind][col_ind][digit_ind]));
+            }
+        }
+
+        term_list.push_back(new AndOp(and_terms_left));
+        term_list.push_back(new AndOp(and_terms_right));
+
+    }
+
+
+}
+
 
 
 

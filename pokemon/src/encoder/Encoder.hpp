@@ -55,6 +55,8 @@ class Encoder {
 
         void addAtMostOneMove(MoveVar& move);
 
+        void addInitStateConstraint(StateVar& state_vars, int* gleft, int* gright);
+
         //-------------------------------------------------
         // Variable creation
         void createGridVariables(GridVar& grid_vars);
