@@ -8,31 +8,13 @@
 #include "logic/Operation.hpp"
 #include "logic/Variable.hpp"
 
-#include "encoding/Encoding.hpp"
+#include "encoder/Encoder.hpp"
 #include "simulator/Grids.hpp"
 
 #include <fstream>
 
 using namespace std;
 
-/*----------------------------------------------------------------------------*/
-void enumerate_subsets(int* sequence, unsigned int size, list<vector<int>>& subsets) {
-    for(unsigned int ind1 = 0; ind1 < size; ind1 ++) {
-        for(unsigned int ind2 = 0; ind2 < size; ind2 ++) {
-            for(unsigned int ind3 = 0; ind3 < size; ind3 ++) {
-                if(ind1 < ind2 && ind2 < ind3) {
-                    int sum = sequence[ind1]+sequence[ind2]+sequence[ind3];
-                    if(sum == 15) {
-                        subsets.push_back(vector<int>());
-                        subsets.back().push_back(sequence[ind1]);
-                        subsets.back().push_back(sequence[ind2]);
-                        subsets.back().push_back(sequence[ind3]);
-                    } 
-                }
-            }
-        }
-    }
-}
 
 /*----------------------------------------------------------------------------*/
 bool solve_cnf(cnf::CnfExpression& cnfEx, vector<bool>& cnfVal) {
@@ -113,10 +95,13 @@ int main() {
     // cout << grids.check_grids() << endl;
 
 
+    Encoder encoder(N);
+    encoder.createEncoding();
+    return 0;
 
     int sequence[] = {1,2,3,4,5,6,7,8,9};
     list<vector<int>> subsets;
-    enumerate_subsets(sequence, 9, subsets);
+    Encoder::enumerate_subsets(sequence, 9, subsets);
     // for(auto& subset: subsets) {
     //     for(auto& elt: subset) {
     //         cout << elt << ", ";

@@ -9,12 +9,15 @@
 
 #include <iostream>
 
+#include <cassert>
+
 using namespace std;
 
 /*----------------------------------------------------------------------------*/
 AndOp::AndOp(vector<Term*> terms):
 Operation(terms.front()->expression())
 {
+    assert(terms.size() > 1);
     _terms = terms;
     _op = Operation::Operator::And;
 }
