@@ -55,6 +55,9 @@ class Encoder {
 
         void addAtMostOneMove(MoveVar& move);
 
+        void addAtLeastOneMove(MoveVar& move);
+
+
         void addInitStateConstraint(StateVar& state_vars, int* gleft, int* gright);
 
         //-------------------------------------------------

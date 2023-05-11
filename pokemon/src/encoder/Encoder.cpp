@@ -63,7 +63,7 @@ void Encoder::createEncoding() {
     }
 
     // variables creation
-    unsigned int n_states = 2;
+    unsigned int n_states = 5;
     _stateSequence.resize(n_states);
     for(auto it = _stateSequence.begin(); it != _stateSequence.end(); it ++) {
         createStateVariables(*it);
@@ -88,6 +88,15 @@ void Encoder::createEncoding() {
     for(unsigned int move_ind = 0; move_ind < _movesVar.size(); move_ind ++) {
         addAtMostOneMove(_movesVar[move_ind]);
     }
+
+    // add at least one move
+    // for(unsigned int move_ind = 0; move_ind < _movesVar.size(); move_ind ++) {
+    //     addAtLeastOneMove(_movesVar[move_ind]);
+    // }
+
+    // set move 0 -> first column left
+    // term_list.push_back(_movesVar[0][RowMove::getMoveIndex(RowMove::Right, 0)]);
+
 
     addDigitConstraints(_ldigits_final, _stateSequence.back().left_grid);
     addDigitConstraints(_rdigits_final, _stateSequence.back().right_grid);
@@ -225,29 +234,42 @@ void Encoder::addMoveConstraint(StateVar& left, StateVar& right, MoveVar& move) 
 
                 // col moves
 
-                // up
-                or_terms_left.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Left, ColMove::Up, col_ind)], left.left_grid[row_ind][col_ind][(digit_ind+_N-1)%_N]}));
-                or_terms_right.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Right, ColMove::Up, col_ind)], left.right_grid[row_ind][col_ind][(digit_ind+_N-1)%_N]}));
+                // column moves up
+                or_terms_left.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Left, ColMove::Up, col_ind)], left.left_grid[(row_ind+1)%_N][col_ind][digit_ind]}));
+                or_terms_right.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Right, ColMove::Up, col_ind)], left.right_grid[(row_ind+1)%_N][col_ind][digit_ind]}));
 
-                // down
-                or_terms_left.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Left, ColMove::Down, col_ind)], left.left_grid[row_ind][col_ind][(digit_ind+1)%_N]}));
-                or_terms_right.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Right, ColMove::Down, col_ind)], left.right_grid[row_ind][col_ind][(digit_ind+1)%_N]}));
+                // column moves down
+                or_terms_left.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Left, ColMove::Down, col_ind)], left.left_grid[(row_ind+_N-1)%_N][col_ind][digit_ind]}));
+                or_terms_right.push_back(new AndOp({move[ColMove::getMoveIndex(ColMove::Right, ColMove::Down, col_ind)], left.right_grid[(row_ind+_N-1)%_N][col_ind][digit_ind]}));
 
 
                 // row moves
                 
-                // right
-                or_terms_left.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Right, row_ind)], getGridVar(left, row_ind, (col_ind+_N-1)%(2*_N), digit_ind)}));
-                or_terms_right.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Right, row_ind)], getGridVar(left, row_ind, (col_ind+_N-1)%(2*_N), digit_ind)}));
+                // here col indexes are considered from 0 to 2*_N, one index for each col of each grid
+                unsigned int col_ind_left = col_ind;
+                unsigned int col_ind_right = col_ind+_N;
 
-                // left
-                or_terms_left.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Left, row_ind)], getGridVar(left, row_ind, (col_ind+1)%(2*_N), digit_ind)}));
-                or_terms_left.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Left, row_ind)], getGridVar(left, row_ind, (col_ind+1)%(2*_N), digit_ind)}));
+                // row moved to the right
+                or_terms_left.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Right, row_ind)], getGridVar(left, row_ind, (col_ind_left+2*_N-1)%(2*_N), digit_ind)}));
+                or_terms_right.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Right, row_ind)], getGridVar(left, row_ind, (col_ind_right+2*_N-1)%(2*_N), digit_ind)}));
+
+                // row moved to the left
+                or_terms_left.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Left, row_ind)], getGridVar(left, row_ind, (col_ind_left+1)%(2*_N), digit_ind)}));
+                or_terms_right.push_back(new AndOp({move[RowMove::getMoveIndex(RowMove::Left, row_ind)], getGridVar(left, row_ind, (col_ind_right+1)%(2*_N), digit_ind)}));
 
                 // no change
-                or_terms_left.push_back(left.left_grid[row_ind][col_ind][digit_ind]);
-                or_terms_right.push_back(left.right_grid[row_ind][col_ind][digit_ind]);
 
+                or_terms_left.push_back(new AndOp({left.left_grid[row_ind][col_ind][digit_ind], 
+                new NotOp(move[RowMove::getMoveIndex(RowMove::Left, row_ind)]),
+                new NotOp(move[RowMove::getMoveIndex(RowMove::Right, row_ind)]),
+                new NotOp(move[ColMove::getMoveIndex(ColMove::Left, ColMove::Down, col_ind)]),
+                new NotOp(move[ColMove::getMoveIndex(ColMove::Left, ColMove::Up, col_ind)])}));
+
+                or_terms_right.push_back(new AndOp({left.right_grid[row_ind][col_ind][digit_ind], 
+                new NotOp(move[RowMove::getMoveIndex(RowMove::Left, row_ind)]),
+                new NotOp(move[RowMove::getMoveIndex(RowMove::Right, row_ind)]),
+                new NotOp(move[ColMove::getMoveIndex(ColMove::Right, ColMove::Down, col_ind)]),
+                new NotOp(move[ColMove::getMoveIndex(ColMove::Right, ColMove::Up, col_ind)])}));
 
                 // global and for this digit in this cell
                 vector<Term*> and_terms_left, and_terms_right;
@@ -363,6 +385,20 @@ void Encoder::addAtMostOneMove(MoveVar& move) {
     }
 
 }
+
+//--------------------------------------------------------------------
+void Encoder::addAtLeastOneMove(MoveVar& move) {
+
+    vector<Term*> or_terms;
+
+    for(unsigned int move_ind = 0; move_ind < move.size(); move_ind ++) {
+        or_terms.push_back(move[move_ind]);
+    }
+    
+    term_list.push_back(new OrOp(or_terms));
+
+}
+
 
 //--------------------------------------------------------------------
 void Encoder::addInitStateConstraint(StateVar& state_vars, int* gleft, int* gright) {

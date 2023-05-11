@@ -73,7 +73,7 @@ void Solution::extractMoves(std::vector<MoveVar>& move_vars, std::vector<cnf::Va
 
         }
 
-        assert(move_index != 0);
+        // assert(move_index != 0);
 
         _moves.push_back(move_index);
 
