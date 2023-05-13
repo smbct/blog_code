@@ -9,7 +9,7 @@ class Solution {
 
     typedef std::vector<std::vector<unsigned int>> Grid;
     
-    typedef unsigned int Move;
+    typedef int MoveIndex;
 
     struct State {
 
@@ -30,23 +30,42 @@ class Solution {
         Solution(unsigned int N); 
 
         /*!
-         * \brief extract the states from the cfn solution
+         * \brief extract solution: states and moves from the cfn solution
          * \param state_vars the list if states variables in the encoding
+         * \param moves_vars the list if moves variables in the encoding
          * \param cnfVar the list of cnf variables ordered according to the encoding variables indexes
          * \param cnfVal the values of the cnf variables in the solution
          */
+        void extractSolution(std::vector<StateVar>& state_vars, std::vector<MoveVar>& move_vars, std::vector<cnf::Variable*>& cnfVar, std::vector<bool>& cnfVal);
+
+        // print the solution: the two grids at each iteration plus the moves applied between each
+        void printSolution(bool print_grids, bool print_moves);
+
+        // print the sequence of moves that leads to the solution
+        void printMoveSequence();
+
+        // check if the solution is valid thanks to a simulator, returns true iif the solution is valid
+        bool checkSolution();
+
+
+
+   private:
+
         void extractStates(std::vector<StateVar>& state_vars, std::vector<cnf::Variable*>& cnfVar, std::vector<bool>& cnfVal);
 
         void extractMoves(std::vector<MoveVar>& move_vars, std::vector<cnf::Variable*>& cnfVar, std::vector<bool>& cnfVal);
+        
+        void printState(State& state);
 
-
-        void drawState(State& state);
+        void printMove(MoveIndex move_ind);
 
     public:
 
         unsigned int _N;
 
         std::vector<State> _states;
-        std::vector<Move> _moves;
+        std::vector<MoveIndex> _moveIndexes;
+
+ 
 
 };

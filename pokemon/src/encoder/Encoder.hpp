@@ -80,8 +80,9 @@ class Encoder {
         //-------------------------------------------------
         ~Encoder();
 
-        //-------------------------------------------------
-        static void enumerate_subsets(int* sequence, unsigned int size, std::list<std::vector<int>>& subsets);
+        //------------------------------------------------------------------------------------------------
+        static void enumerate_subsets(unsigned int size, std::list<std::vector<bool>>& subsets);
+
 
         //-------------------------------------------------
         static bool solve_cnf(cnf::CnfExpression& cnfEx, std::vector<bool>& cnfVal);
@@ -92,10 +93,9 @@ class Encoder {
         /* number of rows/columns in the grid */
         unsigned int _N;
 
-        std::vector<Move*> _moves; // all moves
+        std::vector<std::shared_ptr<Move>> _moves; // all moves
 
-        std::list<std::vector<int>> _subsets; // subset of digits summing to 15
-
+        std::list<std::vector<bool>> _subsets; // subset of digits summing to 15
 
         /* the logic expression main object */
         Expression _ex;

@@ -92,7 +92,6 @@ void Grids::assign(Loc loc, int* values) {
             ind ++;
         }
     }
-    cout << endl;
 
 } 
 
@@ -138,10 +137,11 @@ bool Grids::check_grid(Loc loc) {
 
     // diagonal
     int sum1 = 0, sum2 = 0;
-    for(unsigned int ind; ind < 3; ind ++) {
+    for(unsigned int ind = 0; ind < 3; ind ++) {
         sum1 += (*grid_ptr)[ind][ind];
         sum2 += (*grid_ptr)[ind][2-ind];
     }
+
 
     if(sum1 != magicSum) {
         return false;

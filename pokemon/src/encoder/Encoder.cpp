@@ -7,44 +7,46 @@
 
 using namespace std;
 
+#include "Move.hpp"
+std::vector<std::shared_ptr<Move>> Move::_moves(18, nullptr); // initialize the static array of moves ptr
+
+
 
 //--------------------------------------------------------------------
 Encoder::Encoder(unsigned int N): _N(N) {
 
-    Move* move = nullptr;
+    Move::create();
+    RowMove::create();
+    ColMove::create();
 
-    _moves.resize(18, nullptr);
-
-    // _moves; // all moves
-    for(unsigned int ind = 0; ind < _N; ind ++) {
-        move = new RowMove(RowMove::Left, ind);
-        _moves[move->moveIndex()] = move;
-        move = new RowMove(RowMove::Right, ind);
-        _moves[move->moveIndex()] = move;
+    for(unsigned int index = 0; index < 18; index ++) {
+        _moves.push_back(Move::getMoveFromIndex(index));
     }
 
-    for(unsigned int ind = 0; ind < _N; ind ++) {
-        move = new ColMove(ColMove::Left, ColMove::Up, ind);
-        _moves[move->moveIndex()] = move;
-        move = new ColMove(ColMove::Left, ColMove::Down, ind);
-        _moves[move->moveIndex()] = move;
-        move = new ColMove(ColMove::Right, ColMove::Up, ind);
-        _moves[move->moveIndex()] = move;
-        move = new ColMove(ColMove::Right, ColMove::Down, ind);
-        _moves[move->moveIndex()] = move;    
-    }
-
-
+    // debug printing the subsets of digits summing to 15
     // subset of digits summing to 15
-    int sequence[] = {1,2,3,4,5,6,7,8,9};
-    Encoder::enumerate_subsets(sequence, 9, _subsets);
-    for(auto& subset: _subsets) {
-        for(auto& elt: subset) {
-            cout << elt << ", ";
-        }
-        cout << endl;
-    }
+    // cout << "subsets: " << endl;
+    // enumerate_subsets(_N*_N, _subsets);
+    // for(auto elt: _subsets) {
+    //     int ind = 1;
+    //     for(auto elt2: elt) {
+            
+    //         if(elt2) {
+    //             cout << ind;
+    //         } else {
+    //             cout << "_";
+    //         }
+            
+    //         cout << ", ";
+    //         ind ++;
+    //     }
+    //     cout << endl;
+    // }
 
+    // debug printing the moves and their indexes
+    // for(auto move: _moves) {
+    //     cout << move->to_string() << " -> " << move->moveIndex() << endl;
+    // }
 }
 
 
@@ -58,12 +60,13 @@ void Encoder::createEncoding() {
     GridVar grid_left;
     createGridVariables(grid_left);
 
-    for(Move* move: _moves) {
-        cout << move->to_string() << " -> " << move->moveIndex() << endl;
-    }
-
     // variables creation
-    unsigned int n_states = 5;
+    unsigned int n_states = 20;
+    // unsigned int n_states = 18;
+    // unsigned int n_states = 16;
+    // unsigned int n_states = 14; // 542s
+    // unsigned int n_states = 12; // still running after 4644.59
+
     _stateSequence.resize(n_states);
     for(auto it = _stateSequence.begin(); it != _stateSequence.end(); it ++) {
         createStateVariables(*it);
@@ -96,6 +99,9 @@ void Encoder::createEncoding() {
 
     // set move 0 -> first column left
     // term_list.push_back(_movesVar[0][RowMove::getMoveIndex(RowMove::Right, 0)]);
+    // for(unsigned int ind = 0; ind < _movesVar.size(); ind ++) {
+    //     term_list.push_back(_movesVar[ind][ind]);
+    // }
 
 
     addDigitConstraints(_ldigits_final, _stateSequence.back().left_grid);
@@ -104,19 +110,23 @@ void Encoder::createEncoding() {
     // add at most one digit constraint
 
     // add at least one digit activated per grid at the last state
-    for(unsigned int row_ind = 0; row_ind < _N; row_ind ++) {
-        for(unsigned int col_ind = 0; col_ind < _N; col_ind ++) {
+    // for(unsigned int row_ind = 0; row_ind < _N; row_ind ++) {
+    //     for(unsigned int col_ind = 0; col_ind < _N; col_ind ++) {
 
-            vector<Term*> or_terms_left, or_terms_right;
-            for(unsigned int cell_ind = 0; cell_ind < _N*_N; cell_ind ++) {
-                or_terms_left.push_back(_stateSequence.back().left_grid[row_ind][col_ind][cell_ind]);
-                or_terms_right.push_back(_stateSequence.back().right_grid[row_ind][col_ind][cell_ind]);
-            }
-            term_list.push_back(new OrOp(or_terms_left));
-            term_list.push_back(new OrOp(or_terms_right));
+    //         vector<Term*> or_terms_left, or_terms_right;
+    //         for(unsigned int cell_ind = 0; cell_ind < _N*_N; cell_ind ++) {
+    //             or_terms_left.push_back(_stateSequence.back().left_grid[row_ind][col_ind][cell_ind]);
+    //             or_terms_right.push_back(_stateSequence.back().right_grid[row_ind][col_ind][cell_ind]);
+    //         }
+    //         term_list.push_back(new OrOp(or_terms_left));
+    //         term_list.push_back(new OrOp(or_terms_right));
         
-        }
-    }
+    //     }
+    // }
+
+    // sum constraint for the digits (of the last grid)
+    addSumConstraints(_ldigits_final);
+    addSumConstraints(_rdigits_final);
 
     _ex.setMainTerm(new AndOp(term_list));
 
@@ -133,13 +143,27 @@ void Encoder::createEncoding() {
     if(res) {
 
         Solution solution(_N);
+        solution.extractSolution(_stateSequence, _movesVar, cnfVar, cnfVal);
+    
+        // print the solution to the terminal
+        solution.printSolution(true, true);
+        
+        cout << endl;
+        solution.printMoveSequence();
 
-        solution.extractMoves(_movesVar, cnfVar, cnfVal);
+        // check the consistency of the solution
+        cout << endl << endl;
+        cout << "checking the solution: ";
 
-        solution.extractStates(_stateSequence, cnfVar, cnfVal);
-
-
-
+        if(solution.checkSolution()) {
+            cout << "the solution is valid!";
+        } else {
+            cout << "the solution is not valid :(";
+        }
+        cout << endl;
+    
+    } else {
+        cout << "No solution has been found!" << endl;
     }
 
 }
@@ -352,8 +376,19 @@ void Encoder::addSumConstraints(DigitVar& digit_vars) {
     for(unsigned int ind = 0; ind < _N; ind ++) {
         vector<Term*> row_or, col_or;
         for(auto& subset: _subsets) {
-            row_or.push_back(new AndOp({digit_vars.rows[ind][subset[0]-1], digit_vars.rows[ind][subset[1]-1], digit_vars.rows[ind][subset[2]-1]}));
-            col_or.push_back(new AndOp({digit_vars.cols[ind][subset[0]-1], digit_vars.cols[ind][subset[1]-1], digit_vars.cols[ind][subset[2]-1]}));
+            vector<Term*> row_and, col_and;
+            for(unsigned int digit_ind = 0; digit_ind < _N*_N; digit_ind ++) {
+                if(subset[digit_ind]) {
+                    row_and.push_back(digit_vars.rows[ind][digit_ind]);
+                    col_and.push_back(digit_vars.cols[ind][digit_ind]);
+                } else {
+                    row_and.push_back(new NotOp(digit_vars.rows[ind][digit_ind]));
+                    col_and.push_back(new NotOp(digit_vars.cols[ind][digit_ind]));
+                }
+            }
+            row_or.push_back(new AndOp(row_and));
+            col_or.push_back(new AndOp(col_and));
+
         }
         term_list.push_back(new OrOp(row_or));
         term_list.push_back(new OrOp(col_or));    
@@ -362,8 +397,18 @@ void Encoder::addSumConstraints(DigitVar& digit_vars) {
     // sum = 15 on diagonals
     vector<Term*> diag1_or, diag2_or;
     for(auto& subset: _subsets) {
-        diag1_or.push_back(new AndOp({digit_vars.diag1[subset[0]-1], digit_vars.diag1[subset[1]-1], digit_vars.diag1[subset[2]-1]}));
-        diag2_or.push_back(new AndOp({digit_vars.diag2[subset[0]-1], digit_vars.diag2[subset[1]-1], digit_vars.diag2[subset[2]-1]}));
+        vector<Term*> diag1_and, diag2_and;
+        for(unsigned int digit_ind = 0; digit_ind < _N*_N; digit_ind ++) {
+            if(subset[digit_ind]) {
+                diag1_and.push_back(digit_vars.diag1[digit_ind]);
+                diag2_and.push_back(digit_vars.diag2[digit_ind]);
+            } else {
+                diag1_and.push_back(new NotOp(digit_vars.diag1[digit_ind]));
+                diag2_and.push_back(new NotOp(digit_vars.diag2[digit_ind]));
+            }
+        }
+        diag1_or.push_back(new AndOp(diag1_and));
+        diag2_or.push_back(new AndOp(diag2_and));
     }
     term_list.push_back(new OrOp(diag1_or));
     term_list.push_back(new OrOp(diag2_or));
@@ -438,32 +483,38 @@ void Encoder::addInitStateConstraint(StateVar& state_vars, int* gleft, int* grig
 //--------------------------------------------------------------------
 Encoder::~Encoder() {
 
-    for(auto& move: _moves) {
-        delete move;
-    }
+    // for(auto& move: _moves) {
+    //     delete move;
+    // }
 
 }
 
 
 
 
+
 /*----------------------------------------------------------------------------*/
-void Encoder::enumerate_subsets(int* sequence, unsigned int size, list<vector<int>>& subsets) {
+void Encoder::enumerate_subsets(unsigned int size, list<vector<bool>>& subsets) {
+    
+    vector<bool> subset(size, false);
     for(unsigned int ind1 = 0; ind1 < size; ind1 ++) {
-        for(unsigned int ind2 = 0; ind2 < size; ind2 ++) {
-            for(unsigned int ind3 = 0; ind3 < size; ind3 ++) {
-                if(ind1 < ind2 && ind2 < ind3) {
-                    int sum = sequence[ind1]+sequence[ind2]+sequence[ind3];
-                    if(sum == 15) {
-                        subsets.push_back(vector<int>());
-                        subsets.back().push_back(sequence[ind1]);
-                        subsets.back().push_back(sequence[ind2]);
-                        subsets.back().push_back(sequence[ind3]);
-                    } 
-                }
+        subset[ind1] = true;
+        for(unsigned int ind2 = ind1+1; ind2 < size; ind2 ++) {
+            subset[ind2] = true;
+            for(unsigned int ind3 = ind2+1; ind3 < size; ind3 ++) {
+                subset[ind3] = true;
+                int sum = ind1+ind2+ind3+3; // indexes starts at 0
+                if(sum == 15) {
+                    subsets.push_back(subset);
+                } 
+                subset[ind3] = false;
             }
+            subset[ind2] = false;
         }
+        subset[ind1] = false;
     }
+
+    // bool == true: belongs to the subset, otherwise, does not belong to the subset
 }
 
 
@@ -471,23 +522,20 @@ void Encoder::enumerate_subsets(int* sequence, unsigned int size, list<vector<in
 bool Encoder::solve_cnf(cnf::CnfExpression& cnfEx, vector<bool>& cnfVal) {
 
     string cnf_filename = "temp.dm";
-    string sol_filename = "res";
+    string sol_filename = "sol.txt";
 
     cnfEx.exportDimacs(cnf_filename);
 
     string cmd;
-    cmd += "./glucose";
-
-
-    cmd += " -verb=0";
-    // cmd += " -cpu-lim=1";
-    // cmd += " --help";
-
+    cmd += "./kissat";
     cmd += " " + cnf_filename;
-    cmd += " " + sol_filename;
+    // cmd += " > " + sol_filename;
+    cmd += " | tee " + sol_filename;
+    // system(cmd.c_str());
 
-    // ./glucose temp.dm res
-    system(cmd.c_str());
+    // solution extraction
+    cmd = "python extract_solution.py";
+    // system(cmd.c_str());
 
     ifstream file(sol_filename);
 
@@ -503,7 +551,7 @@ bool Encoder::solve_cnf(cnf::CnfExpression& cnfEx, vector<bool>& cnfVal) {
             bool pol = true;
             if(str.at(0) == '-') {
                 pol = false;
-                    str = str.substr(1);
+                str = str.substr(1);
             }
             int ind = stoi(str)-1;
             cnfVal.at(ind) = pol;

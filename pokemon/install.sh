@@ -1,46 +1,34 @@
 #!/bin/sh
 
-echo "........................."
-echo "Installing minisat"
-echo "........................."
+echo "...................................."
+echo "Installing SAT solver kissat_pre"
+echo "...................................."
 
 
 # sudo apt install curl
-# sudo apt install zlib1g-dev
 
-mkdir solver
+curl -sS https://satcompetition.github.io/2022/downloads/sequential-solvers.zip > sequential-solvers.zip
+unzip "sequential-solvers.zip" "kissat_pre/sources/*" -d "./"
+cd "kissat_pre/sources/src"
+sed -i '21s/.*/};/' "hashmap.h" # dirty fix to make it compile
+cd ..
+./configure
+cd build
+make kissat 
+mv kissat "../../../kissat" 
+cd "../../.."
+rm -r "kissat_pre"
+rm "sequential-solvers.zip"
 
-curl -sS http://minisat.se/downloads/minisat-2.2.0.tar.gz > solver/minisat.tar.gz
-cd solver
-tar -xvzf minisat.tar.gz
-rm minisat.tar.gz
-cd minisat
-export MROOT="${PWD}"
-cd core
-make
 
-echo "........................."
-echo "Installing glucose"
-echo "........................."
+echo "...................................."
+echo "Compiling the encoder/decoder"
+echo "...................................."
 
-cd ../..
-curl -sS https://www.labri.fr/perso/lsimon/downloads/softwares/glucose-syrup-4.1.tgz > glucose.tgz
-tar -xvzf glucose.tgz
-rm glucose.tgz
-cd glucose-syrup-4.1/simp
-make rs
+# cd ../../..
+# mkdir obj
+# mkdir obj/encoder
+# mkdir obj/logic
+# mkdir obj/simulator
 
-echo "........................."
-echo "Compiling AAN-reach"
-echo "........................."
-
-cd ../../..
-mkdir obj
-mkdir obj/asp
-mkdir obj/encoding
-mkdir obj/interface
-mkdir obj/lcg
-mkdir obj/logic
-mkdir obj/model
-
-make aan_reach
+# make main

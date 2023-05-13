@@ -25,6 +25,10 @@ int main() {
 
     unsigned int N = 3;
 
+    // ./kissat_pre/bin/kissat temp.dm res
+
+    // ./kissat_pre/sources/build/kissat temp.dm > res
+
     // Grids grids(N);
 
     // int gleft[] = {4, 9, 6, 5, 8, 3, 2, 4, 1};
