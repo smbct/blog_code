@@ -44,6 +44,18 @@ class Encoder {
         //-------------------------------------------------
         Encoder(unsigned int N);
 
+        //-------------------------------------------------
+        ~Encoder();
+        
+        //-------------------------------------------------
+        void createEncoding();
+
+        //-------------------------------------------------
+        void solveEncoding();
+
+
+    private:
+
 
         //-------------------------------------------------        
         // Constraints creation
@@ -74,19 +86,13 @@ class Encoder {
         //-------------------------------------------------
         Variable* getGridVar(StateVar& state_var, unsigned int row, unsigned int col, unsigned int digit_ind);
 
-        //-------------------------------------------------
-        void createEncoding();
-
-        //-------------------------------------------------
-        ~Encoder();
-
-        //------------------------------------------------------------------------------------------------
-        static void enumerate_subsets(unsigned int size, std::list<std::vector<bool>>& subsets);
 
 
         //-------------------------------------------------
         static bool solve_cnf(cnf::CnfExpression& cnfEx, std::vector<bool>& cnfVal);
 
+        //------------------------------------------------------------------------------------------------
+        static void enumerate_subsets(unsigned int size, std::list<std::vector<bool>>& subsets);
 
     private:
 

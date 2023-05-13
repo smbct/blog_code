@@ -23,10 +23,11 @@ Encoder::Encoder(unsigned int N): _N(N) {
         _moves.push_back(Move::getMoveFromIndex(index));
     }
 
-    // debug printing the subsets of digits summing to 15
     // subset of digits summing to 15
-    // cout << "subsets: " << endl;
-    // enumerate_subsets(_N*_N, _subsets);
+    enumerate_subsets(_N*_N, _subsets);
+    
+    // debug printing the subsets of digits summing to 15
+    // cout << "subsets: " << endl;    
     // for(auto elt: _subsets) {
     //     int ind = 1;
     //     for(auto elt2: elt) {
@@ -130,13 +131,21 @@ void Encoder::createEncoding() {
 
     _ex.setMainTerm(new AndOp(term_list));
 
+    // debug printing the formula
     // cout << _ex.toString() << endl;
 
+}
+
+//--------------------------------------------------------------------
+void Encoder::solveEncoding() {
+
+    // export the formula to cnf (conjunctive normal form)
     cnf::CnfExpression cnfEx;
     vector<cnf::Variable*> cnfVar;
     _ex.toCnf(cnfEx, cnfVar);
     vector<bool> cnfVal(cnfVar.size()); /* values of the cnf variables */
 
+    // call the sat solver to solve the formula
     // this returns true if there is a solution, and it returns the cnf variable assignment in the solution
     bool res = solve_cnf(cnfEx, cnfVal);
 
