@@ -1,5 +1,6 @@
 #include "Encoder.hpp"
 #include <vector>
+#include <chrono>
 
 #include <memory>
 #include <fstream>
@@ -66,7 +67,7 @@ void Encoder::createEncoding() {
     // unsigned int n_states = 18;
     // unsigned int n_states = 16;
     // unsigned int n_states = 14; // 542s
-    // unsigned int n_states = 12; // still running after 4644.59
+    // unsigned int n_states = 12; // still running after 4644.59s
 
     _stateSequence.resize(n_states);
     for(auto it = _stateSequence.begin(); it != _stateSequence.end(); it ++) {
@@ -154,6 +155,10 @@ void Encoder::solveEncoding() {
         Solution solution(_N);
         solution.extractSolution(_stateSequence, _movesVar, cnfVar, cnfVal);
     
+        cout << endl;
+        cout << "Solution: ";
+        cout << endl;
+
         // print the solution to the terminal
         solution.printSolution(true, true);
         
@@ -492,9 +497,6 @@ void Encoder::addInitStateConstraint(StateVar& state_vars, int* gleft, int* grig
 //--------------------------------------------------------------------
 Encoder::~Encoder() {
 
-    // for(auto& move: _moves) {
-    //     delete move;
-    // }
 
 }
 
@@ -530,22 +532,33 @@ void Encoder::enumerate_subsets(unsigned int size, list<vector<bool>>& subsets) 
 /*----------------------------------------------------------------------------*/
 bool Encoder::solve_cnf(cnf::CnfExpression& cnfEx, vector<bool>& cnfVal) {
 
+    // time measurement: https://stackoverflow.com/questions/50891632/calculating-time-elapsed-in-c
+    using clock = std::chrono::system_clock;
+    using sec = std::chrono::duration<double>;
+
     string cnf_filename = "temp.dm";
     string sol_filename = "sol.txt";
 
+    // export the cnf formula to dimacs format
     cnfEx.exportDimacs(cnf_filename);
 
     string cmd;
     cmd += "./kissat";
     cmd += " " + cnf_filename;
-    // cmd += " > " + sol_filename;
-    cmd += " | tee " + sol_filename;
-    // system(cmd.c_str());
+    cmd += " | tee " + sol_filename; // export the output (including solution) to a file and to the terminal simultaneously
+    
+    const auto before = clock::now();
+    system(cmd.c_str());
+    const sec duration = clock::now() - before;
 
-    // solution extraction
+    std::cout << "SAT solver answered in " << duration.count() << "s" << std::endl;
+
+
+    // extraction of the solution from the SAT solver output
     cmd = "python extract_solution.py";
-    // system(cmd.c_str());
+    system(cmd.c_str());
 
+    // read the solution file
     ifstream file(sol_filename);
 
     string str;

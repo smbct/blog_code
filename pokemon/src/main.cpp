@@ -18,7 +18,7 @@ using namespace std;
 /*----------------------------------------------------------------------------*/
 int main() {
 
-    cout << "hello poke" << endl;
+    cout << "Solving the grid problem !" << endl;
 
     unsigned int N = 3;
 

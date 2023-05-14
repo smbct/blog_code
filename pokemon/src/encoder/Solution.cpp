@@ -70,8 +70,6 @@ void Solution::extractStates(std::vector<StateVar>& state_vars, std::vector<cnf:
 /*------------------------------------------------------------------------------------------------------------------------------*/
 void Solution::extractMoves(std::vector<MoveVar>& move_vars, std::vector<cnf::Variable*>& cnfVar, std::vector<bool>& cnfVal) {
 
-    cout << "n move vars: " << move_vars.size() << endl;
-
     for(auto move_var: move_vars) {
 
         int move_index = -1;
@@ -90,8 +88,6 @@ void Solution::extractMoves(std::vector<MoveVar>& move_vars, std::vector<cnf::Va
         // assert(move_index != 0);
 
         _moveIndexes.push_back(move_index);
-
-        // cout << "move extracted: " << move_index << endl;
 
     }
 
