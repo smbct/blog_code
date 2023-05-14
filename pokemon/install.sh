@@ -25,10 +25,8 @@ echo "...................................."
 echo "Compiling the encoder/decoder"
 echo "...................................."
 
-# cd ../../..
-# mkdir obj
-# mkdir obj/encoder
-# mkdir obj/logic
-# mkdir obj/simulator
-
-# make main
+mkdir obj
+mkdir obj/encoder
+mkdir obj/logic
+mkdir obj/simulator
+make main
